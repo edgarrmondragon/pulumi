@@ -1274,12 +1274,12 @@ func (b *localBackend) LogoutAll() error {
 	return workspace.DeleteAllAccounts()
 }
 
-func (b *localBackend) CurrentUser() (string, []string, error) {
+func (b *localBackend) CurrentUser() (string, []string, *workspace.TokenInformation, error) {
 	user, err := user.Current()
 	if err != nil {
-		return "", nil, err
+		return "", nil, nil, err
 	}
-	return user.Username, nil, nil
+	return user.Username, nil, nil, nil
 }
 
 func (b *localBackend) getLocalStacks(ctx context.Context) ([]*localBackendReference, error) {
