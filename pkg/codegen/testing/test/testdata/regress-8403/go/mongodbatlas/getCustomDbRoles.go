@@ -4,6 +4,9 @@
 package mongodbatlas
 
 import (
+	"context"
+	"reflect"
+
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	"regress-8403/mongodbatlas/internal"
 )
@@ -23,4 +26,37 @@ type LookupCustomDbRolesArgs struct {
 
 type LookupCustomDbRolesResult struct {
 	Result *GetCustomDbRolesResult `pulumi:"result"`
+}
+
+func LookupCustomDbRolesOutput(ctx *pulumi.Context, opts ...pulumi.InvokeOption) LookupCustomDbRolesResultOutput {
+	return pulumi.ToOutput(0).ApplyT(func(int) (LookupCustomDbRolesResult, error) {
+		r, err := LookupCustomDbRoles(ctx, opts...)
+		var s LookupCustomDbRolesResult
+		if r != nil {
+			s = *r
+		}
+		return s, err
+	}).(LookupCustomDbRolesResultOutput)
+}
+
+type LookupCustomDbRolesResultOutput struct{ *pulumi.OutputState }
+
+func (LookupCustomDbRolesResultOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((*LookupCustomDbRolesResult)(nil)).Elem()
+}
+
+func (o LookupCustomDbRolesResultOutput) ToLookupCustomDbRolesResultOutput() LookupCustomDbRolesResultOutput {
+	return o
+}
+
+func (o LookupCustomDbRolesResultOutput) ToLookupCustomDbRolesResultOutputWithContext(ctx context.Context) LookupCustomDbRolesResultOutput {
+	return o
+}
+
+func (o LookupCustomDbRolesResultOutput) Result() GetCustomDbRolesResultPtrOutput {
+	return o.ApplyT(func(v LookupCustomDbRolesResult) *GetCustomDbRolesResult { return v.Result }).(GetCustomDbRolesResultPtrOutput)
+}
+
+func init() {
+	pulumi.RegisterOutputType(LookupCustomDbRolesResultOutput{})
 }

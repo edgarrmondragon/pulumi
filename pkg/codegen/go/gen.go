@@ -2139,7 +2139,7 @@ func NeedsGoOutputVersion(f *schema.Function) bool {
 		return false
 	}
 
-	return f.NeedsOutputVersion()
+	return f.ReturnType != nil
 }
 
 func (pkg *pkgContext) genFunctionCodeFile(f *schema.Function) (string, error) {
@@ -2294,7 +2294,10 @@ func (pkg *pkgContext) genFunctionOutputVersion(w io.Writer, f *schema.Function)
 	originalResultTypeName := pkg.functionResultTypeName(f)
 	resultTypeName := originalResultTypeName + "Output"
 
-	code := `
+	code := ""
+
+	if f.Inputs != nil && len(f.Inputs.Properties) > 0 {
+		code = `
 func ${fn}Output(ctx *pulumi.Context, args ${fn}OutputArgs, opts ...pulumi.InvokeOption) ${outputType} {
 	return pulumi.ToOutputWithContext(context.Background(), args).
 		ApplyT(func(v interface{}) (${fn}Result, error) {
@@ -2309,18 +2312,35 @@ func ${fn}Output(ctx *pulumi.Context, args ${fn}OutputArgs, opts ...pulumi.Invok
 }
 
 `
+	} else {
+		code = `
+func ${fn}Output(ctx *pulumi.Context, opts ...pulumi.InvokeOption) ${outputType} {
+	return pulumi.ToOutput(0).ApplyT(func(int) (${fn}Result, error) {
+		r, err := ${fn}(ctx, opts...)
+		var s ${fn}Result
+		if r != nil {
+			s = *r
+		}
+		return s, err
+	}).(${outputType})
+}
+
+`
+	}
 
 	code = strings.ReplaceAll(code, "${fn}", originalName)
 	code = strings.ReplaceAll(code, "${outputType}", resultTypeName)
 	fmt.Fprint(w, code)
 
-	pkg.genInputArgsStruct(w, name+"Args", f.Inputs.InputShape)
+	if f.Inputs != nil && len(f.Inputs.Properties) > 0 {
+		pkg.genInputArgsStruct(w, name+"Args", f.Inputs.InputShape)
 
-	genInputImplementationWithArgs(w, genInputImplementationArgs{
-		name:         name + "Args",
-		receiverType: name + "Args",
-		elementType:  pkg.functionArgsTypeName(f),
-	})
+		genInputImplementationWithArgs(w, genInputImplementationArgs{
+			name:         name + "Args",
+			receiverType: name + "Args",
+			elementType:  pkg.functionArgsTypeName(f),
+		})
+	}
 
 	if f.ReturnType != nil {
 		if objectType, ok := f.ReturnType.(*schema.ObjectType); ok && objectType != nil {
