@@ -998,6 +998,8 @@ func TestBindDefaultInt(t *testing.T) {
 }
 
 func TestFunctionToFunctionSpecTurnaround(t *testing.T) {
+	t.Parallel()
+
 	type testCase struct {
 		name  string
 		fn    *Function
@@ -1027,17 +1029,15 @@ func TestFunctionToFunctionSpecTurnaround(t *testing.T) {
 
 	for _, tc := range testCases {
 		tc := tc
-
 		t.Run(tc.name+"/marshalFunction", func(t *testing.T) {
+			t.Parallel()
 			pkg := Package{}
 			fspec, err := pkg.marshalFunction(tc.fn)
 			require.NoError(t, err)
-
 			require.Equal(t, tc.fspec, fspec)
-
 		})
-
 		t.Run(tc.name+"/bindFunctionDef", func(t *testing.T) {
+			t.Parallel()
 			ts := types{
 				spec: packageSpecSource{
 					&PackageSpec{
