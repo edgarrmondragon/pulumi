@@ -2792,7 +2792,7 @@ func (mod *modContext) genUtilitiesFile(w io.Writer) error {
 		code = strings.ReplaceAll(code, "/*pluginDownloadURL*/", "")
 	}
 
-	_, err = fmt.Fprintf(w, code)
+	_, err = fmt.Fprintf(w, "%s", code)
 	return err
 }
 
