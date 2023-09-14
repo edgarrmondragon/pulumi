@@ -15,11 +15,16 @@
 package tests
 
 import (
+	"context"
 	"os"
 	"strings"
 	"testing"
 
+	"github.com/pulumi/pulumi/pkg/v3/backend/httpstate"
+	"github.com/pulumi/pulumi/pkg/v3/backend/httpstate/client"
 	ptesting "github.com/pulumi/pulumi/sdk/v3/go/common/testing"
+	"github.com/pulumi/pulumi/sdk/v3/go/common/util/cmdutil"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestPolicyNewNonInteractive(t *testing.T) {
@@ -34,17 +39,27 @@ func TestPremiumPolicyAuth(t *testing.T) {
 	if os.Getenv("PULUMI_ACCESS_TOKEN") == "" {
 		t.Skipf("Skipping: PULUMI_ACCESS_TOKEN is not set")
 	}
+
+	// TODO remove this
+	accessToken := os.Getenv("PULUMI_ACCESS_TOKEN")
+	client := client.NewClient(httpstate.DefaultURL(), accessToken, false, cmdutil.Diag())
+	username, organizations, err := client.GetPulumiAccountDetails(context.TODO())
+	assert.NoError(t, err)
+	assert.Empty(t, username)
+	assert.Empty(t, organizations)
 	e := ptesting.NewEnvironment(t)
 	defer deleteIfNotFailed(e)
 
-	e.RunCommand("pulumi", "login", "--default-org", "pulumi-test")
+	e.RunCommand("pulumi", "login")
 	defer e.RunCommand("pulumi", "logout")
 	// Remove `PULUMI_ACCESS_TOKEN` so that `pulumi policy new` automatically sets it for installation.
 	for i, elem := range e.Env {
 		if strings.HasPrefix(elem, "PULUMI_ACCESS_TOKEN=") {
-			e.Env = append(e.Env[:i], e.Env[i+1:]...)
+			_ = i
+			// e.Env = append(e.Env[:i], e.Env[i+1:]...)
 			break
 		}
 	}
+
 	e.RunCommand("pulumi", "policy", "new", "kubernetes-premium-policies-typescript", "--force")
 }
