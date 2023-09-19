@@ -212,6 +212,11 @@ func parseImportFile(f importFile, protectResources bool) ([]deploy.Import, impo
 		errs = multierror.Append(errs, fmt.Errorf(format, args...))
 	}
 
+	type resourceName string
+	type resourceType string
+	// Track duplicate resource names and their types.
+	resourceNameMap := map[resourceName]map[resourceType]struct{}{}
+
 	imports := make([]deploy.Import, len(f.Resources))
 	for i, spec := range f.Resources {
 		if spec.Type == "" {
@@ -224,9 +229,31 @@ func parseImportFile(f importFile, protectResources bool) ([]deploy.Import, impo
 			pusherrf("%v has no ID", describeResource(i, spec))
 		}
 
+		var name tokens.QName
+		// Handle duplicate resource names.
+		if resourceTypeSet, seen := resourceNameMap[resourceName(spec.Name)]; seen {
+			// Resource Name has already been seen.
+			if _, alreadyExists := resourceTypeSet[resourceType(spec.Type)]; alreadyExists {
+				pusherrf("the resource '%v' for %v duplicate resource and type",
+					spec.Name, describeResource(i, spec))
+			}
+
+			// Store the current number and mutate the set to track the newly seen type.
+			ident := len(resourceTypeSet)
+			resourceTypeSet[resourceType(spec.Type)] = struct{}{}
+
+			// Suffix resource with number to make it unique.
+			name = tokens.QName(fmt.Sprintf("%s%d", spec.Name, ident))
+		} else {
+			resourceNameMap[resourceName(spec.Name)] = map[resourceType]struct{}{
+				resourceType(spec.Type): {},
+			}
+			name = spec.Name
+		}
+
 		imp := deploy.Import{
 			Type:              spec.Type,
-			Name:              spec.Name,
+			Name:              name,
 			ID:                spec.ID,
 			Protect:           protectResources,
 			Properties:        spec.Properties,

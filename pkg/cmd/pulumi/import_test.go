@@ -3,6 +3,7 @@ package main
 import (
 	"testing"
 
+	"github.com/pulumi/pulumi/sdk/v3/go/common/tokens"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -147,6 +148,29 @@ func TestParseImportFile_errors(t *testing.T) {
 				"could not parse version 'not-a-semver' for resource 'thing' of type 'foo:bar:baz'",
 			},
 		},
+		{
+			desc: "duplicate name same type",
+			give: importFile{
+				Resources: []importSpec{
+					{
+						Name:    "thing",
+						ID:      "thing",
+						Type:    "foo:bar:bar",
+						Version: "0.0.0",
+					},
+					{
+						Name:    "thing",
+						ID:      "thing",
+						Type:    "foo:bar:bar",
+						Version: "0.0.0",
+					},
+				},
+			},
+			wantErrs: []string{
+				"1 error occurred",
+				"the resource 'thing' for resource 'thing' of type 'foo:bar:bar' duplicate resource and type",
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -162,5 +186,33 @@ func TestParseImportFile_errors(t *testing.T) {
 				assert.ErrorContains(t, err, wantErr)
 			}
 		})
+	}
+}
+
+func TestParseImportFileSameNameDifferentType(t *testing.T) {
+	t.Parallel()
+	f := importFile{
+		Resources: []importSpec{
+			{
+				Name:    "thing",
+				ID:      "thing",
+				Type:    "foo:bar:bar",
+				Version: "0.0.0",
+			},
+			{
+				Name:    "thing",
+				ID:      "thing",
+				Type:    "foo:bar:baz",
+				Version: "0.0.0",
+			},
+		},
+	}
+	imports, _, err := parseImportFile(f, false)
+	assert.NoError(t, err)
+	resourceNames := map[tokens.QName]struct{}{}
+	for _, imp := range imports {
+		_, exists := resourceNames[imp.Name]
+		assert.False(t, exists, "name %s should not have been seen already", imp.Name)
+		resourceNames[imp.Name] = struct{}{}
 	}
 }

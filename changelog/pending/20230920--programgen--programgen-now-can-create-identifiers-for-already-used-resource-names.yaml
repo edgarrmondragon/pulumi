@@ -1,0 +1,4 @@
+changes:
+- type: fix
+  scope: programgen
+  description: `pulumi import` supports resources with duplicate names, but different types.
